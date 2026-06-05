@@ -25,17 +25,18 @@ COOLDOWN_MINUTES = int(os.getenv("ALERT_COOLDOWN_MINUTES", "10"))
 def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS alert_cooldowns (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
             feature_key     TEXT NOT NULL,
             last_alerted_at TEXT NOT NULL,
             alert_count     INTEGER DEFAULT 1
         )
-    """)
+    """
+    )
     conn.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_cooldown_key "
-        "ON alert_cooldowns(feature_key)"
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_cooldown_key " "ON alert_cooldowns(feature_key)"
     )
     conn.commit()
     return conn
@@ -61,9 +62,7 @@ def is_suppressed(top_features: list[str], cooldown_minutes: int = COOLDOWN_MINU
         True if the alert should be suppressed (recently fired), False otherwise.
     """
     key = _make_feature_key(top_features)
-    cutoff = (
-        datetime.now(timezone.utc) - timedelta(minutes=cooldown_minutes)
-    ).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=cooldown_minutes)).isoformat()
 
     conn = _get_conn()
     try:
@@ -138,15 +137,11 @@ def purge_expired(cooldown_minutes: int = COOLDOWN_MINUTES) -> int:
     Returns:
         Number of records deleted.
     """
-    cutoff = (
-        datetime.now(timezone.utc) - timedelta(minutes=cooldown_minutes * 2)
-    ).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=cooldown_minutes * 2)).isoformat()
 
     conn = _get_conn()
     try:
-        conn.execute(
-            "DELETE FROM alert_cooldowns WHERE last_alerted_at < ?", (cutoff,)
-        )
+        conn.execute("DELETE FROM alert_cooldowns WHERE last_alerted_at < ?", (cutoff,))
         deleted = conn.execute("SELECT changes()").fetchone()[0]
         conn.commit()
         return deleted

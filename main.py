@@ -61,6 +61,7 @@ MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
 
 # ─── Status display ───────────────────────────────────────────────────────────
 
+
 def _make_status_table(stats: dict) -> Table:
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column("Key", style="dim")
@@ -82,6 +83,7 @@ def _print_run_header(run_number: int) -> None:
 
 
 # ─── Single pipeline pass ──────────────────────────────────────────────────────
+
 
 def run_pipeline_once(
     model,
@@ -144,9 +146,7 @@ def run_pipeline_once(
         zs_result = zscore_detector.check(feature_row)
         stats["zscore_triggered"] = zs_result.triggered_features or "none"
         if zs_result.is_anomaly:
-            logger.warning(
-                "ZScore anomaly | features=%s", zs_result.triggered_features
-            )
+            logger.warning("ZScore anomaly | features=%s", zs_result.triggered_features)
     except Exception as e:
         logger.error("Z-Score scoring failed: %s", e, exc_info=True)
 
@@ -190,10 +190,15 @@ def run_pipeline_once(
 
 # ─── CLI ──────────────────────────────────────────────────────────────────────
 
+
 @click.command()
 @click.option("--once", "mode", flag_value="once", help="Run pipeline once and exit")
 @click.option(
-    "--loop", "mode", flag_value="loop", default=True, show_default=True,
+    "--loop",
+    "mode",
+    flag_value="loop",
+    default=True,
+    show_default=True,
     help="Run pipeline continuously (default)",
 )
 @click.option(
@@ -224,6 +229,7 @@ def main(mode: str, interval: int, retrain: bool):
     if retrain:
         console.print("  [yellow]--retrain: running train.py first...[/yellow]")
         import subprocess
+
         subprocess.run([sys.executable, "train.py"], check=True)
 
     model = load_model()
@@ -270,9 +276,7 @@ def main(mode: str, interval: int, retrain: bool):
             session_alerts += stats.get("alerts_fired", 0)
             stats["alerts_fired"] = session_alerts
             _print_stats(stats)
-            console.print(
-                f"  [dim]Next run in {interval}s — press Ctrl+C to stop[/dim]\n"
-            )
+            console.print(f"  [dim]Next run in {interval}s — press Ctrl+C to stop[/dim]\n")
             time.sleep(interval)
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Pipeline stopped by user.[/bold yellow]\n")

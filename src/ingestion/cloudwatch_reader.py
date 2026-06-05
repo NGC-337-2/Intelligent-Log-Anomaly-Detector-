@@ -42,7 +42,8 @@ def _get_db_connection() -> sqlite3.Connection:
 
 def _init_db(conn: sqlite3.Connection) -> None:
     """Create tables if they don't exist."""
-    conn.executescript("""
+    conn.executescript(
+        """
         CREATE TABLE IF NOT EXISTS logs (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id     TEXT UNIQUE,
@@ -63,15 +64,14 @@ def _init_db(conn: sqlite3.Connection) -> None:
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
-    """)
+    """
+    )
     conn.commit()
 
 
 def _get_last_poll_time(conn: sqlite3.Connection) -> int:
     """Return the last-polled CloudWatch timestamp (ms epoch), or a default."""
-    row = conn.execute(
-        "SELECT value FROM poll_state WHERE key = 'last_poll_ms'"
-    ).fetchone()
+    row = conn.execute("SELECT value FROM poll_state WHERE key = 'last_poll_ms'").fetchone()
     if row:
         return int(row["value"])
     # Default: look back INITIAL_LOOKBACK_MINUTES
