@@ -20,15 +20,15 @@ logger = logging.getLogger(__name__)
 # ─── Regex: Apache/nginx combined log format ──────────────────────────────────
 # Example: 127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] "GET /index.html HTTP/1.1" 200 2326 45
 _APACHE_RE = re.compile(
-    r'(?P<ip>[\d.]+)\s+'           # client IP
-    r'\S+\s+\S+\s+'                # ident, auth
-    r'\[(?P<dt>[^\]]+)\]\s+'       # timestamp
-    r'"(?P<method>\w+)\s+'         # HTTP method
-    r'(?P<endpoint>\S+)\s+'        # path
-    r'HTTP/\S+"\s+'                # protocol
-    r'(?P<status>\d{3})\s+'        # status code
-    r'(?P<bytes>\d+|-)'            # bytes
-    r'(?:\s+(?P<latency>\d+))?'    # optional latency (ms)
+    r"(?P<ip>[\d.]+)\s+"  # client IP
+    r"\S+\s+\S+\s+"  # ident, auth
+    r"\[(?P<dt>[^\]]+)\]\s+"  # timestamp
+    r'"(?P<method>\w+)\s+'  # HTTP method
+    r"(?P<endpoint>\S+)\s+"  # path
+    r'HTTP/\S+"\s+'  # protocol
+    r"(?P<status>\d{3})\s+"  # status code
+    r"(?P<bytes>\d+|-)"  # bytes
+    r"(?:\s+(?P<latency>\d+))?"  # optional latency (ms)
 )
 
 _APACHE_DT_FMT = "%d/%b/%Y:%H:%M:%S %z"

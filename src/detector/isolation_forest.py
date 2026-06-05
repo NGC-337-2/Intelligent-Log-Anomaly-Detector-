@@ -50,12 +50,12 @@ class AnomalyResult:
     """Result of scoring a single feature window."""
 
     window_start: str
-    anomaly_score: float          # decision_function output; lower = more anomalous
+    anomaly_score: float  # decision_function output; lower = more anomalous
     is_anomaly: bool
-    severity: str                 # "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
-    top_features: list[str]       # top contributing features by z-score
-    feature_values: dict          # raw feature values for the window
-    feature_zscores: dict         # per-feature z-scores against training stats
+    severity: str  # "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+    top_features: list[str]  # top contributing features by z-score
+    feature_values: dict  # raw feature values for the window
+    feature_zscores: dict  # per-feature z-scores against training stats
     model_name: str = "IsolationForest"
 
     def to_dict(self) -> dict:
@@ -102,7 +102,9 @@ def train(
     """
     logger.info(
         "Training IsolationForest | n_estimators=%d | contamination=%.3f | rows=%d",
-        n_estimators, contamination, len(features_df),
+        n_estimators,
+        contamination,
+        len(features_df),
     )
 
     X = features_df[FEATURE_COLUMNS].values
