@@ -13,7 +13,6 @@ Usage:
 """
 
 import logging
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -28,8 +27,8 @@ load_dotenv()
 # Allow running from repo root without installing the package
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.features.extractor import extract_features, store_features, FEATURE_COLUMNS
-from src.detector.isolation_forest import train, MODEL_PATH
+from src.features.extractor import extract_features, store_features, FEATURE_COLUMNS  # noqa: E402
+from src.detector.isolation_forest import train, MODEL_PATH  # noqa: E402
 
 console = Console()
 logging.basicConfig(
@@ -124,9 +123,6 @@ def main(lookback_days: int, contamination: float, n_estimators: int, no_s3: boo
     console.print(f"  [green]✓ Model trained and saved to {MODEL_PATH}[/green]")
 
     # ── Step 4: Quick sanity check ────────────────────────────────────────────
-    import numpy as np
-    from sklearn.ensemble import IsolationForest as IF
-
     X = features_df[FEATURE_COLUMNS].values
     scores = model.decision_function(X)
     n_anomalies = int((scores < -0.1).sum())

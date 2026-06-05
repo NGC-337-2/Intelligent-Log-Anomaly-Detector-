@@ -118,7 +118,10 @@ class ZScoreDetector:
         triggered: list[str] = []
 
         if not self.is_warmed_up:
-            logger.debug("ZScore detector not yet warmed up (%d windows seen)", len(self._buffers[FEATURE_COLUMNS[0]]))
+            logger.debug(
+                "ZScore detector not yet warmed up (%d windows seen)",
+                len(self._buffers[FEATURE_COLUMNS[0]]),
+            )
         else:
             for col in FEATURE_COLUMNS:
                 mean, std = self._get_stats(col)
