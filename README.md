@@ -27,65 +27,186 @@ CloudWatch Logs
                          SNS → Email / Slack
 ```
 
-## Quick Start
+## Setup & Run Guide
 
-### 1. Prerequisites
-- Python 3.11+
-- Docker & Docker Compose
-- AWS CLI configured (`aws configure`)
-- Terraform (for infrastructure setup)
+### Prerequisites
 
-### 2. Clone & Configure
+| Tool | Install |
+|---|---|
+| Python 3.11+ | [python.org](https://python.org) |
+| Docker Desktop | [docker.com](https://docker.com) |
+| AWS CLI | `winget install Amazon.AWSCLI` |
+| Terraform *(optional)* | `winget install Hashicorp.Terraform` |
+
+---
+
+### Step 1 — Create your `.env` file
+
 ```bash
-git clone <repo-url>
-cd log-anomaly-detector
-cp .env.example .env
-# Fill in your AWS credentials and resource ARNs in .env
+cd "d:\Project\Anomly Detection"
+copy .env.example .env
 ```
 
-### 3. Provision AWS Infrastructure
+Open `.env` and fill in your real values:
+
+```ini
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=your_secret...
+AWS_DEFAULT_REGION=us-east-1
+
+CLOUDWATCH_LOG_GROUP=/log-anomaly-detector/app
+CLOUDWATCH_LOG_STREAM=app-stream
+CLOUDWATCH_METRICS_NAMESPACE=LogAnomalyDetector
+
+SNS_TOPIC_ARN=arn:aws:sns:us-east-1:YOUR_ACCOUNT:log-anomaly-alerts
+S3_BUCKET=log-anomaly-detector-models
+```
+
+---
+
+### Step 2 — Provision AWS Infrastructure (Terraform)
+
 ```bash
 cd infra/
 terraform init
-terraform plan
-terraform apply
-# Copy outputs (SNS_TOPIC_ARN, etc.) into .env
+terraform apply -var="alert_email=you@example.com"
+# Copy the sns_topic_arn output value into your .env
+cd ..
 ```
 
-### 4. Install Python Dependencies
+> **Skip this step** if you've already created the CloudWatch Log Group and SNS topic manually in the AWS Console.
+
+---
+
+### Step 3 — Install Python dependencies
+
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 5. Generate Training Data & Train Model
-```bash
-# Generate 7 days of normal synthetic logs → CloudWatch + SQLite
-python simulate_logs.py --days 7 --mode normal
+---
 
-# Train Isolation Forest on the synthetic data
+### Step 4 — Generate training data
+
+Creates 7 days of realistic synthetic logs → pushes to CloudWatch **and** saves to local `logs.db`:
+
+```bash
+python simulate_logs.py --days 7 --mode normal
+```
+
+~300,000 log entries generated in ~30 seconds.
+
+---
+
+### Step 5 — Train the Isolation Forest model
+
+```bash
 python train.py
 ```
 
-### 6. Run the Full Pipeline (Single Pass)
+This will:
+- Extract 1-minute feature windows from `logs.db`
+- Print a feature stats summary table
+- Save `models/isolation_forest.pkl` locally
+- Upload it to your S3 bucket automatically
+
+---
+
+### Step 6 — Run the pipeline (single pass to test)
+
 ```bash
-# Inject anomalies + run detection once
+# Inject anomaly bursts into 1 day of logs
 python simulate_logs.py --days 1 --mode anomaly
+
+# Run one detection cycle
 python main.py --once
 ```
 
-### 7. Run Continuously (60s loop)
-```bash
-python main.py
+Expected output:
+```
+━━━━━━━━━ Pipeline Run #1 ━━━━━━━━━
+  IF score=-0.4231 | is_anomaly=True | severity=HIGH
+  🚨 ALERT dispatched | severity=HIGH | features=['error_rate', 'p95_latency']
 ```
 
-### 8. Launch Grafana Dashboard
+---
+
+### Step 7 — Run continuously (60-second loop)
+
+```bash
+python main.py --loop
+```
+
+With a custom interval:
+
+```bash
+python main.py --loop --interval 30
+```
+
+Press `Ctrl+C` to stop. Logs are written to `pipeline.log`.
+
+---
+
+### Step 8 — Launch Grafana
+
 ```bash
 docker compose up -d
-# Open http://localhost:3000 (admin / admin)
-# Dashboard: "Log Anomaly Detector"
 ```
+
+Open **http://localhost:3000** in your browser.
+
+| Field | Value |
+|---|---|
+| Username | `admin` |
+| Password | `admin` |
+
+Navigate to **Dashboards → Log Anomaly Detector**. All 7 panels populate automatically as metrics flow in from the pipeline.
+
+> Grafana may take ~30 seconds to start. Check with `docker compose logs grafana`.
+
+---
+
+### Step 9 — Run tests
+
+```bash
+# MOCK_MODE=true skips all real AWS calls — no credentials needed
+set MOCK_MODE=true
+pytest tests/ -v --tb=short
+```
+
+---
+
+## Full Pipeline Flow
+
+```
+simulate_logs.py  ──────►  CloudWatch Logs  +  logs.db (SQLite)
+                                                      │
+train.py  ──────────────►  models/isolation_forest.pkl + S3
+                                                      │
+main.py --loop                                        │
+  ├── cloudwatch_reader  ◄── polls CloudWatch every 60s
+  ├── log_parser          ──► structured rows → logs.db
+  ├── extractor           ──► 1-min windows → 6 features
+  ├── isolation_forest    ──► anomaly score
+  ├── zscore_baseline     ──► rolling σ check
+  └── alert engine        ──► SNS email + CloudWatch metrics
+                                          │
+                                    Grafana dashboard
+                                   http://localhost:3000
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `No module named boto3` | Run `pip install -r requirements.txt` |
+| `No trained model` | Run `python train.py` first |
+| `SNS publish failed` | Check `SNS_TOPIC_ARN` in `.env` and IAM permissions |
+| Grafana shows "No data" | Confirm AWS credentials are in `.env` and the pipeline has run at least once |
+| `logs.db` missing | Run `simulate_logs.py` first — it creates the database |
+| Docker Compose fails | Make sure Docker Desktop is running |
 
 ---
 
