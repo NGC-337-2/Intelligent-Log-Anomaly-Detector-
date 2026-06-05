@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: CloudWatch
+    type: cloudwatch
+    access: proxy
+    uid: cloudwatch-ds
+    jsonData:
+      authType: keys
+      defaultRegion: ${AWS_DEFAULT_REGION:-us-east-1}
+    secureJsonData:
+      accessKey: ${AWS_ACCESS_KEY_ID}
+      secretKey: ${AWS_SECRET_ACCESS_KEY}
+    isDefault: true
+    editable: false

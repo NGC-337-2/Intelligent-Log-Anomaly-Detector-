@@ -1,0 +1,62 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ─── Virtual environments ────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env
+!.env.example
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+*.pem
+*.key
+secrets.json
+
+# ─── Data & Models ───────────────────────────────────────────────────────────
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+pipeline.log
+logs.db
+
+# Keep models directory but ignore pkl files (tracked via S3)
+models/*.pkl
+models/*.joblib
+!models/.gitkeep
+
+# ─── Grafana ─────────────────────────────────────────────────────────────────
+grafana/data/
+
+# ─── Docker ──────────────────────────────────────────────────────────────────
+.docker/
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Terraform ───────────────────────────────────────────────────────────────
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfvars
+
+# ─── Test artifacts ──────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml

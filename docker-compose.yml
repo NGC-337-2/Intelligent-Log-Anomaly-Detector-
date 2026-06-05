@@ -1,0 +1,77 @@
+version: "3.9"
+
+# ─── Shared environment ───────────────────────────────────────────────────────
+x-aws-env: &aws-env
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+  AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+
+services:
+
+  # ── Anomaly Detector Pipeline ──────────────────────────────────────────────
+  detector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: log-anomaly-detector
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *aws-env
+      DB_PATH: /data/logs.db
+      MODEL_DIR: /data/models
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - anomaly-data:/data
+      - ./models:/data/models          # pre-trained model persistence
+    command: ["--loop", "--interval", "${POLL_INTERVAL_SECONDS:-60}"]
+    depends_on: []
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - anomaly-net
+
+  # ── Grafana Dashboard ──────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: log-anomaly-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+      GF_FEATURE_TOGGLES_ENABLE: "newVizTooltips"
+      # Pass AWS creds so Grafana can reach CloudWatch
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - anomaly-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:3000/api/health | grep -q ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+# ─── Named volumes ────────────────────────────────────────────────────────────
+volumes:
+  anomaly-data:
+    driver: local
+  grafana-storage:
+    driver: local
+
+# ─── Network ─────────────────────────────────────────────────────────────────
+networks:
+  anomaly-net:
+    driver: bridge

@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install linting tools
+        run: pip install flake8 black
+
+      - name: flake8 lint
+        run: |
+          flake8 src/ main.py train.py simulate_logs.py \
+            --max-line-length=100 \
+            --extend-ignore=E203,W503
+
+      - name: black format check
+        run: |
+          black --check --line-length=100 \
+            src/ main.py train.py simulate_logs.py
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pytest
+        env:
+          MOCK_MODE: "true"
+          AWS_DEFAULT_REGION: "us-east-1"
+          AWS_ACCESS_KEY_ID: "fake"
+          AWS_SECRET_ACCESS_KEY: "fake"
+        run: |
+          pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
+
+  docker-build:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: log-anomaly-detector:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Optional: push to ECR on merge to main ─────────────────────────────────
+  # Uncomment and configure with real ECR details when ready.
+  #
+  # push-to-ecr:
+  #   name: Push to ECR
+  #   runs-on: ubuntu-latest
+  #   needs: docker-build
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: us-east-1
+  #     - name: Login to ECR
+  #       id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
+  #     - name: Build & push
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: .
+  #         push: true
+  #         tags: ${{ steps.login-ecr.outputs.registry }}/log-anomaly-detector:latest
