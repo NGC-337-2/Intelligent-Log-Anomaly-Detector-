@@ -14,12 +14,12 @@ import json
 import logging
 import os
 import random
-import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import boto3
 import click
+import numpy as _np
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from rich.console import Console
@@ -157,7 +157,9 @@ def generate_logs(
             anomaly_start_offset = random.randint(0, total_seconds - 300)
             anomaly_start = start_time + timedelta(seconds=anomaly_start_offset)
             anomaly_end = anomaly_start + timedelta(minutes=5)
-            anomaly_type = random.choice(["error_spike", "latency_spike", "auth_storm", "volume_spike"])
+            anomaly_type = random.choice(
+                ["error_spike", "latency_spike", "auth_storm", "volume_spike"]
+            )
             anomaly_windows.append((anomaly_start, anomaly_end, anomaly_type))
             console.print(
                 f"  [yellow]⚡ Anomaly [{anomaly_type}] at "
@@ -252,7 +254,6 @@ def _push_to_cloudwatch(client, logs: list):
 
     for i in range(0, len(logs), BATCH_SIZE):
         batch = logs[i: i + BATCH_SIZE]
-        events = []
         batch_bytes = 0
         sub_batches = []
         sub_batch = []
@@ -332,8 +333,7 @@ def _push_to_sqlite(logs: list):
     conn.close()
 
 
-# Monkey-patch numpy random for Poisson since we don't import numpy
-import numpy as _np
+# Monkey-patch numpy random for Poisson since we don't import numpy elsewhere
 random.poisson = _np.random.poisson  # type: ignore
 
 

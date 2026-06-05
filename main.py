@@ -30,21 +30,19 @@ from pathlib import Path
 import click
 from dotenv import load_dotenv
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
-
-load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.ingestion.cloudwatch_reader import poll_once
-from src.features.extractor import extract_features, extract_latest_window, store_features
-from src.detector.isolation_forest import load_model, score as if_score, batch_score
-from src.detector.zscore_baseline import get_detector as get_zscore_detector
-from src.alerts.engine import process_result, get_alert_history
-from src.alerts.cooldown import purge_expired
+from src.ingestion.cloudwatch_reader import poll_once  # noqa: E402
+from src.features.extractor import extract_features, extract_latest_window  # noqa: E402
+from src.detector.isolation_forest import load_model, score as if_score  # noqa: E402
+from src.detector.zscore_baseline import get_detector as get_zscore_detector  # noqa: E402
+from src.alerts.engine import process_result, get_alert_history  # noqa: E402
+from src.alerts.cooldown import purge_expired  # noqa: E402
+
+load_dotenv()
 
 console = Console()
 logging.basicConfig(
