@@ -20,7 +20,7 @@ jobs:
           cache: pip
 
       - name: Install linting tools
-        run: pip install flake8 black
+        run: pip install flake8 black==24.10.0
 
       - name: flake8 lint
         run: |
@@ -30,7 +30,7 @@ jobs:
 
       - name: black format check
         run: |
-          black --check --line-length=100 \
+          black --check --diff --line-length=100 \
             src/ main.py train.py simulate_logs.py
 
   test:

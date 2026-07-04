@@ -186,7 +186,8 @@ def store_features(features_df: pd.DataFrame) -> None:
         return
 
     conn = _get_db_connection()
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS features (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
             window_start     TEXT UNIQUE NOT NULL,
@@ -198,10 +199,9 @@ def store_features(features_df: pd.DataFrame) -> None:
             failed_auth_count INTEGER,
             created_at       TEXT DEFAULT (datetime('now'))
         )
-    """)
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_features_window ON features(window_start)"
+    """
     )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_features_window ON features(window_start)")
 
     for _, row in features_df.iterrows():
         ws = row["window_start"]

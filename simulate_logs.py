@@ -38,10 +38,21 @@ MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
 
 # ─── Realistic endpoint pool ──────────────────────────────────────────────────
 ENDPOINTS = [
-    "/api/users", "/api/products", "/api/orders", "/api/payment",
-    "/api/auth/login", "/api/auth/logout", "/api/search", "/api/cart",
-    "/api/checkout", "/api/profile", "/api/recommendations", "/health",
-    "/api/inventory", "/api/reviews", "/api/notifications",
+    "/api/users",
+    "/api/products",
+    "/api/orders",
+    "/api/payment",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/search",
+    "/api/cart",
+    "/api/checkout",
+    "/api/profile",
+    "/api/recommendations",
+    "/health",
+    "/api/inventory",
+    "/api/reviews",
+    "/api/notifications",
 ]
 
 METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"]
@@ -170,7 +181,7 @@ def generate_logs(
     while current < end_time:
         # Determine if we're in an anomaly window
         active_anomaly = None
-        for (a_start, a_end, a_type) in anomaly_windows:
+        for a_start, a_end, a_type in anomaly_windows:
             if a_start <= current <= a_end:
                 active_anomaly = a_type
                 break
@@ -253,7 +264,7 @@ def _push_to_cloudwatch(client, logs: list):
         pass
 
     for i in range(0, len(logs), BATCH_SIZE):
-        batch = logs[i: i + BATCH_SIZE]
+        batch = logs[i : i + BATCH_SIZE]
         batch_bytes = 0
         sub_batches = []
         sub_batch = []
@@ -264,7 +275,8 @@ def _push_to_cloudwatch(client, logs: list):
                 "timestamp": int(
                     datetime.fromisoformat(log["timestamp"])
                     .replace(tzinfo=timezone.utc)
-                    .timestamp() * 1000
+                    .timestamp()
+                    * 1000
                 ),
                 "message": msg,
             }
@@ -307,7 +319,8 @@ def _push_to_sqlite(logs: list):
 
     db_path = Path("logs.db")
     conn = sqlite3.connect(str(db_path))
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
@@ -320,7 +333,8 @@ def _push_to_sqlite(logs: list):
             message TEXT,
             created_at TEXT DEFAULT (datetime('now'))
         )
-    """)
+    """
+    )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)")
     conn.executemany(
         """INSERT INTO logs (timestamp, level, method, endpoint, status_code,
