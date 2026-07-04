@@ -34,9 +34,9 @@ class ZScoreResult:
 
     window_start: str
     is_anomaly: bool
-    triggered_features: list[str]       # features that breached threshold
-    feature_zscores: dict               # z-score per feature
-    feature_values: dict                # raw values
+    triggered_features: list[str]  # features that breached threshold
+    feature_zscores: dict  # z-score per feature
+    feature_values: dict  # raw values
     threshold: float
     model_name: str = "ZScoreBaseline"
 

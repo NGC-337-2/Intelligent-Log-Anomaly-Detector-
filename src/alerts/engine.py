@@ -38,7 +38,8 @@ SEVERITY_PRIORITY = {"NONE": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
 def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS anomaly_alerts (
             id                INTEGER PRIMARY KEY AUTOINCREMENT,
             window_start      TEXT NOT NULL,
@@ -51,10 +52,9 @@ def _get_conn() -> sqlite3.Connection:
             sns_published     INTEGER DEFAULT 0,
             created_at        TEXT DEFAULT (datetime('now'))
         )
-    """)
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_alerts_window ON anomaly_alerts(window_start)"
+    """
     )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_alerts_window ON anomaly_alerts(window_start)")
     conn.commit()
     return conn
 
@@ -133,25 +133,25 @@ def _put_cloudwatch_metrics(result: Union[AnomalyResult, ZScoreResult]) -> None:
     metrics = []
 
     if isinstance(result, AnomalyResult):
-        metrics.append({
-            "MetricName": "AnomalyScore",
-            "Value": result.anomaly_score,
-            "Unit": "None",
-            "Dimensions": [{"Name": "Model", "Value": "IsolationForest"}],
-        })
-        metrics.append({
-            "MetricName": "IsAnomaly",
-            "Value": 1 if result.is_anomaly else 0,
-            "Unit": "Count",
-            "Dimensions": [{"Name": "Model", "Value": "IsolationForest"}],
-        })
+        metrics.append(
+            {
+                "MetricName": "AnomalyScore",
+                "Value": result.anomaly_score,
+                "Unit": "None",
+                "Dimensions": [{"Name": "Model", "Value": "IsolationForest"}],
+            }
+        )
+        metrics.append(
+            {
+                "MetricName": "IsAnomaly",
+                "Value": 1 if result.is_anomaly else 0,
+                "Unit": "Count",
+                "Dimensions": [{"Name": "Model", "Value": "IsolationForest"}],
+            }
+        )
 
     # Also publish feature values as individual metrics
-    feature_values = (
-        result.feature_values
-        if hasattr(result, "feature_values")
-        else {}
-    )
+    feature_values = result.feature_values if hasattr(result, "feature_values") else {}
     metric_map = {
         "error_rate": ("ErrorRate", "Percent"),
         "avg_latency_ms": ("AvgLatency", "Milliseconds"),
@@ -162,12 +162,14 @@ def _put_cloudwatch_metrics(result: Union[AnomalyResult, ZScoreResult]) -> None:
     for feat, (metric_name, unit) in metric_map.items():
         val = feature_values.get(feat)
         if val is not None:
-            metrics.append({
-                "MetricName": metric_name,
-                "Value": float(val),
-                "Unit": unit,
-                "Dimensions": [{"Name": "Pipeline", "Value": "LogAnomalyDetector"}],
-            })
+            metrics.append(
+                {
+                    "MetricName": metric_name,
+                    "Value": float(val),
+                    "Unit": unit,
+                    "Dimensions": [{"Name": "Pipeline", "Value": "LogAnomalyDetector"}],
+                }
+            )
 
     if not metrics:
         return
@@ -178,7 +180,7 @@ def _put_cloudwatch_metrics(result: Union[AnomalyResult, ZScoreResult]) -> None:
         for i in range(0, len(metrics), 20):
             cw.put_metric_data(
                 Namespace=METRICS_NAMESPACE,
-                MetricData=metrics[i:i + 20],
+                MetricData=metrics[i : i + 20],
             )
         logger.debug("Published %d CloudWatch metrics", len(metrics))
     except ClientError as e:
@@ -273,9 +275,7 @@ def process_result(
         return False
 
     top_features = (
-        result.top_features
-        if isinstance(result, AnomalyResult)
-        else result.triggered_features
+        result.top_features if isinstance(result, AnomalyResult) else result.triggered_features
     )
 
     # Cooldown check
@@ -284,17 +284,11 @@ def process_result(
         if cooldown_minutes is not None:
             kwargs["cooldown_minutes"] = cooldown_minutes
         if is_suppressed(top_features, **kwargs):
-            logger.info(
-                "Alert suppressed by cooldown | features=%s", top_features
-            )
+            logger.info("Alert suppressed by cooldown | features=%s", top_features)
             return False
 
     # Fetch sample logs for the alert payload
-    ws = (
-        result.window_start
-        if hasattr(result, "window_start")
-        else ""
-    )
+    ws = result.window_start if hasattr(result, "window_start") else ""
     sample_logs = _get_sample_logs(str(ws))
 
     # Build and publish SNS alert
