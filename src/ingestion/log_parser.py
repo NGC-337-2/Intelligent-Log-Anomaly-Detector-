@@ -64,6 +64,9 @@ def _parse_json(raw: str, event_id: Optional[str] = None) -> Optional[dict]:
     except json.JSONDecodeError:
         return None
 
+    if not isinstance(data, dict):
+        return None
+
     # Normalise timestamp to ISO format with UTC
     ts_raw = data.get("timestamp", "")
     try:

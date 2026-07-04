@@ -45,12 +45,18 @@ class TestJsonParser:
         raw = '{"timestamp": "2024-01-15T10:30:00", "status_code": 200, "latency_ms": 50}'
         result = parse_log_line(raw)
         assert result is not None
-        assert "+00:00" in result["timestamp"] or "Z" in result["timestamp"] or "UTC" not in result["timestamp"]
+        assert (
+            "+00:00" in result["timestamp"]
+            or "Z" in result["timestamp"]
+            or "UTC" not in result["timestamp"]
+        )
 
 
 class TestApacheParser:
     def test_parses_apache_log_with_latency(self):
-        raw = '127.0.0.1 - frank [15/Jan/2024:10:30:00 +0000] "GET /index.html HTTP/1.1" 200 2326 145'
+        raw = (
+            '127.0.0.1 - frank [15/Jan/2024:10:30:00 +0000] "GET /index.html HTTP/1.1" 200 2326 145'
+        )
         result = parse_log_line(raw)
         assert result is not None
         assert result["status_code"] == 200
@@ -101,7 +107,5 @@ class TestEdgeCases:
         assert parse_log_line("not a log line at all!!@#$") is None
 
     def test_none_like_input(self):
-        # Should not raise
         result = parse_log_line("null")
-        # "null" is valid JSON → returns None status_code=0
-        # just ensure no exception
+        assert result is None
