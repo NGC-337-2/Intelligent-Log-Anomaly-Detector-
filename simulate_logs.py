@@ -181,7 +181,7 @@ def generate_logs(
     while current < end_time:
         # Determine if we're in an anomaly window
         active_anomaly = None
-        for (a_start, a_end, a_type) in anomaly_windows:
+        for a_start, a_end, a_type in anomaly_windows:
             if a_start <= current <= a_end:
                 active_anomaly = a_type
                 break
