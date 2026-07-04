@@ -30,7 +30,7 @@ jobs:
 
       - name: black format check
         run: |
-          black --check --line-length=100 \
+          black --check --diff --line-length=100 \
             src/ main.py train.py simulate_logs.py
 
   test:
